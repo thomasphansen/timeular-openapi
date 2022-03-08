@@ -1,0 +1,2194 @@
+openapi: 3.0.3
+info:
+  title: Timeular Public API
+  version: 1.0.0
+  contact: {}
+servers:
+  - url: "https://api.timeular.com"
+security:
+  - bearerAuth: []
+paths:
+
+#region Authentication
+  /api/v3/developer/sign-in:
+    post:
+      tags:
+        - Authentication
+      security: []
+      summary: Sign-in with API Key & API Secret
+      description: "With this endpoint you can obtain an Access Token, which is required to access secured endpoints. To do so, you have to provide both an API Key and an API Secret.\n\nThey can be generated on https://profile.timeular.com/ or, if you have an Access Token already, with a `POST` request to `/developer/api-access`.\n\nIf you have an Access Token, you need to set the `Authorization` Header in every secured request to `Bearer *your_access_token*`.\n"
+      operationId: signInWithApiKeyApiSecret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Access Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/developer/api-access:
+    get:
+      tags:
+        - Authentication
+      summary: Fetch API Key
+      description: "With this endpoint you can fetch your API Key. If you haven't generated one yet, `null` will be returned.\n\n You cannot obtain an API Secret in this way, since it’s visible only once right after generation. If you have lost your API Secret, please generate a new pair of API Key & API Secret."
+      operationId: fetchApiKey
+      responses:
+        "200":
+          description: API Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchAPIKeyResponse"
+        "400":
+          description: Missing Authorization header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Authentication
+      summary: Generate new API Key & API Secret
+      description: "With this endpoint you can generate a new pair of API Key & API Secret.\n\nEvery time you generate a new pair, the old one becomes invalid. Your API Secret won’t be accessible later, so please note it down in some secret place. If you have lost your API Secret, you can generate a new pair of API Key & API Secret here."
+      operationId: generateNewApiKeyApiSecret
+      requestBody:
+        content:
+          text/plain:
+            example: ""
+      responses:
+        "200":
+          description: API Key & API Secret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateNewAPIKeyResponse"
+        "400":
+          description: Missing Authorization header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/developer/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout
+      description: With this endpoint you are invalidating the current Access Token meaning all access wil be denied if you are using it afterwards again.
+      operationId: logout
+      responses:
+        "200":
+          description: User Logged out
+        "400":
+          description: Missing Authorization header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Activities
+  /api/v3/activities:
+    get:
+      tags:
+        - Activities
+      summary: List all Activities
+      description: List all Activities
+      operationId: listAllActivities
+      responses:
+        "200":
+          description: List of Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListActivitiesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - Activities
+      summary: Create an Activity
+      description: "With this endpoint you can create a new Activity. It should have a name, a space and a color.\n\nThe name does not have to be unique. You can also provide an Integration to which the activity will belong (zei by default, which means no special Integration). You can obtain a list of enabled Integrations by making a GET request to /api/v1/integrations."
+      operationId: createAnActivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivity"
+      responses:
+        "201":
+          description: Created Activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveActivity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not Space Admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                Not Space Admin:
+                  value:
+                    message: Only space admins are allowed to create activities
+        "500":
+          description: "Integration-related error, eg. if given integration does not exist"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/activities/{activityID}:
+    parameters:
+      - in: path
+        name: activityID
+        schema:
+          type: integer
+        required: true
+        description: Activity ID
+    delete:
+      tags:
+        - Activities
+      summary: Archive an Activity
+      description: Archive an Activity
+      operationId: archiveAnActivity
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                      example: Any error which can be ignored and did not prevented action to be performed successfully.
+                    example:
+                      - Any error which can be ignored and did not prevented action to be performed successfully.
+              examples:
+                OK:
+                  value:
+                    errors:
+                      - Any error which can be ignored and did not prevented action to be performed successfully.
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Activities
+      summary: Edit an Activity
+      description: Edit an Activity
+      operationId: editAnActivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditActivity"
+      responses:
+        "200":
+          description: Edited Activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseActivity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/activities/{activityID}/device-side/{deviceSide}:
+    parameters:
+      - in: path
+        name: activityID
+        schema:
+          type: integer
+        required: true
+        description: Activity ID
+      - in: path
+        name: deviceSide
+        schema:
+          type: integer
+        required: true
+        description: Device Side
+    post:
+      tags:
+        - Activities
+      summary: Assign an Activity to Device Side
+      description: "With this endpoint you can assign an activity to any Side of your active Device. We do not know how many Sides your Device has and which ones are valid (the default Tracker has 8 sides numbered from 1 to 8). \n\nIn order to activate your Device, make a POST request to /api/v3/devices/{deviceSerial}/activate.\n"
+      operationId: assignAnActivityToDeviceSide
+      responses:
+        "200":
+          description: Activity after assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveActivity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No Device is Active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Activities
+      summary: Unassign an Activity from a Device Side
+      description: "With this endpoint, you can delete an assignment of an Activity from a Side of your active Device. In order to activate one proper Device, make a POST request to /api/v3/devices/{deviceSerial}/activate.\n"
+      operationId: unassignAnActivityFromADeviceSide
+      responses:
+        "200":
+          description: Activity after unassignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveActivity"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No Device is Active or Activity is not assigned to given Device Side
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Devices
+  /api/v3/devices:
+    get:
+      tags:
+        - Devices
+      summary: List all known Devices
+      description: List all known Devices
+      operationId: listAllKnownDevices
+      responses:
+        "200":
+          description: List of Known Devices
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: "true"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "Content-Type,Authorization,User-ID,Do-Not-Pass-To-Third-Party-Service"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "OPTIONS,GET,POST,PUT,PATCH,DELETE"
+            Allow:
+              schema:
+                type: string
+                example: "HEAD, GET, OPTIONS"
+            Cache-Control:
+              schema:
+                type: string
+                example: "no-cache, no-store, max-age=0, must-revalidate"
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Encoding:
+              schema:
+                type: string
+                example: gzip
+            Date:
+              schema:
+                type: string
+                example: "Mon, 03 Aug 2020 13:16:07 GMT"
+            Expires:
+              schema:
+                type: string
+                example: "0"
+            Pragma:
+              schema:
+                type: string
+                example: no-cache
+            Server:
+              schema:
+                type: string
+                example: nginx/1.17.8
+            Transfer-Encoding:
+              schema:
+                type: string
+                example: chunked
+            Vary:
+              schema:
+                type: string
+                example: Accept-Encoding
+            X-Content-Type-Options:
+              schema:
+                type: string
+                example: nosniff
+            X-Frame-Options:
+              schema:
+                type: string
+                example: DENY
+            X-XSS-Protection:
+              schema:
+                type: string
+                example: 1; mode=block
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListDevicesResponse"
+        "401":
+          description: Unauthorized
+          headers:
+            Access-Control-Allow-Credentials:
+              schema:
+                type: string
+                example: "true"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "Content-Type,Authorization,User-ID,Do-Not-Pass-To-Third-Party-Service"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "OPTIONS,GET,POST,PUT,PATCH,DELETE"
+            Allow:
+              schema:
+                type: string
+                example: "HEAD, GET, OPTIONS"
+            Cache-Control:
+              schema:
+                type: string
+                example: "no-cache, no-store, max-age=0, must-revalidate"
+            Connection:
+              schema:
+                type: string
+                example: keep-alive
+            Content-Encoding:
+              schema:
+                type: string
+                example: gzip
+            Date:
+              schema:
+                type: string
+                example: "Mon, 03 Aug 2020 13:16:07 GMT"
+            Expires:
+              schema:
+                type: string
+                example: "0"
+            Pragma:
+              schema:
+                type: string
+                example: no-cache
+            Server:
+              schema:
+                type: string
+                example: nginx/1.17.8
+            Transfer-Encoding:
+              schema:
+                type: string
+                example: chunked
+            Vary:
+              schema:
+                type: string
+                example: Accept-Encoding
+            X-Content-Type-Options:
+              schema:
+                type: string
+                example: nosniff
+            X-Frame-Options:
+              schema:
+                type: string
+                example: DENY
+            X-XSS-Protection:
+              schema:
+                type: string
+                example: 1; mode=block
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/devices/{deviceSerial}:
+    parameters:
+      - in: path
+        name: deviceSerial
+        schema:
+          type: string
+        required: true
+        description: Device Serial code
+    delete:
+      tags:
+        - Devices
+      summary: Forget Device
+      description: "With this endpoint, you can remove a Device from the list of known Devices. In order to remove the Device, you have to make it active again with a POST request to /api/v3/devices/{deviceSerial}/activate.\n"
+      operationId: forgetDevice
+      responses:
+        "204":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device is not known. Make it Active to make it known too.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Devices
+      summary: Edit Device
+      description: "With this endpoint you can set the name of your device. The name is trimmed from leading and trailing whitespaces. You can remove the name from a Device by setting it to null/blank/empty.\n"
+      operationId: editDevice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditDeviceRequest"
+      responses:
+        "200":
+          description: Edited Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device is not known. Make it Active to make it known too.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/devices/{deviceSerial}/activate:
+    parameters:
+      - in: path
+        name: deviceSerial
+        schema:
+          type: string
+        required: true
+        description: Device Serial code
+    post:
+      tags:
+        - Devices
+      summary: Activate Device
+      description: Activate Device
+      operationId: activateDevice
+      responses:
+        "200":
+          description: Activated Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/devices/{deviceSerial}/deactivate:
+    parameters:
+      - in: path
+        name: deviceSerial
+        schema:
+          type: string
+        required: true
+        description: Device Serial code
+    post:
+      tags:
+        - Devices
+      summary: Deactivate Device
+      description: Deactivate Device
+      operationId: deactivateDevice
+      responses:
+        "200":
+          description: Deactivated Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+        "404":
+          description: Device is not known. Make it Active to make it known too.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Device does not have the status Active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/devices/{deviceSerial}/disable:
+    parameters:
+      - in: path
+        name: deviceSerial
+        schema:
+          type: string
+        required: true
+        description: Device Serial code
+    post:
+      tags:
+        - Devices
+      summary: Disable Device
+      description: Disable Device
+      operationId: disableDevice
+      responses:
+        "200":
+          description: Disabled Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device is not known. Make it Active to make it known too.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/devices/{deviceSerial}/enable:
+    parameters:
+      - in: path
+        name: deviceSerial
+        schema:
+          type: string
+        required: true
+        description: Device Serial code
+    post:
+      tags:
+        - Devices
+      summary: Enable Device
+      description: Enable Device
+      operationId: enableDevice
+      requestBody:
+        content:
+          text/plain:
+            example: ""
+      responses:
+        "200":
+          description: Enabled Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device is not known. Make it Active to make it known too.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Tracking
+  /api/v3/tracking:
+    get:
+      tags:
+        - Tracking
+      summary: Show current Tracking
+      description: Show current Tracking
+      operationId: showCurrentTracking
+      responses:
+        "200":
+          description: Current Tracking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentTrackingResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Tracking
+      security:
+        - bearerAuth: []
+      summary: Edit Tracking
+      description: "With this endpoint you can set/edit/remove the note of your current Tracking.\n\nTo remove the note set it to null/empty/blank. You can provide one or more Tags and Mentions in a note, each of them prefixed with # or @. If the related activity is bound to some Integration, let’s say a JIRA Project, JIRA task IDs are valid Mentions too."
+      operationId: editTracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditTrackingRequest"
+      responses:
+        "200":
+          description: Edited current Tracking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentTrackingResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: ActivityId Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: There is no Tracking or Tracking for another Activity is ongoing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/tracking/{activityID}/start:
+    parameters:
+      - in: path
+        name: activityID
+        schema:
+          type: integer
+        required: true
+        description: Activity ID
+    post:
+      tags:
+        - Tracking
+      summary: Start Tracking
+      description: Start Tracking
+      operationId: startTracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartTrackingRequest"
+      responses:
+        "200":
+          description: Started Tracking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentTrackingResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+        "409":
+          description: Tracking is already started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/tracking/stop:
+    post:
+      tags:
+        - Tracking
+      summary: Stop Tracking
+      description: "With this endpoint you can create a new Time Entry by stopping the current tracking. The resulting Time Entry should have a duration no shorter than 1 minute.\n\nThe time entry will be created even if it overlaps with other Time Entries – in result existing Time Entries will be split or deleted in such manner, that the new one will fit without overlapping.\n"
+      operationId: stopTracking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StopTrackingResponse"
+      responses:
+        "200":
+          description: Created Time Entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateTimeEntryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Tracking is not started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region TimeEntries
+  /api/v3/time-entries:
+    post:
+      tags:
+        - TimeEntries
+      summary: Create Time Entry
+      description: "With this endpoint, you can create a new Time Entry. It should be connected to an Activity and have a duration no shorter than 1 minute. A Note can be provided too, but it’s not required. Within this Note, you can refer one or more Tags or Mentions.\n\nThese Tags and Mentions need to be referenced by their ID and put inside a special prefix and suffix, `<{{|t|1|}}>` for the tag with id 1 and `<{{|m|1|}}>` for the mention with id 1.\n\nIf the related Activity is bound to some Integration, let’s say a JIRA Project, JIRA task IDs is a valid Mention. The Time Entry will be created even if it overlaps with other Time Entries – in result existing Time Entries will be split or deleted in such manner, that new one will fit without overlapping.\n"
+      operationId: createTimeEntry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrEditTimeEntryRequest"
+      responses:
+        "201":
+          description: Created Time Entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateTimeEntryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: "Integration-related error, eg. if new Time Entry somehow conflicts with data on the Integration side"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v3/time-entries/{startDate}/{endDate}:
+    parameters:
+      - in: path
+        name: startDate
+        schema:
+          type: string
+        required: true
+        description: Start Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+      - in: path
+        name: endDate
+        schema:
+          type: string
+        required: true
+        description: End Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+    get:
+      tags:
+        - TimeEntries
+      summary: Find Time Entries in given range
+      description: Find Time Entries within the given time range.
+      operationId: findTimeEntriesInGivenRange
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindTimeEntriesResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/time-entries/{timeEntryID}:
+    parameters:
+      - in: path
+        name: timeEntryID
+        schema:
+          type: integer
+        required: true
+        description: Time Entry ID
+        example: 1
+    get:
+      tags:
+        - TimeEntries
+      summary: Find Time Entry by its ID
+      description: Find Time Entry by its ID
+      operationId: findTimeEntryByItsId
+      responses:
+        "200":
+          description: Found Time Entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Time Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - TimeEntries
+      summary: Delete a Time Entry
+      description: Delete a Time Entry
+      operationId: deleteATimeEntry
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTimeEntryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Time Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - TimeEntries
+      summary: Edit a Time Entry
+      description: "With this endpoint you can edit an existing time entry. When changing the activity ID please note, that both the new and old activity attached to time entry have to belong to same integration.\n\nTo remove a note, just set the complete object to null and all values within the object will be deleted too.\n"
+      operationId: editATimeEntry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrEditTimeEntryRequest"
+            example:
+              activityId: "1"
+              note:
+                text: "200 sheep <{{|t|1|}}> <{{|m|1|}}>"
+              startedAt: "2016-08-05T06:01:00.000"
+              stoppedAt: "2016-08-05T07:01:00.000"
+      responses:
+        "200":
+          description: Edited Time Entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Activity or Time Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+        "500":
+          description: "Integration-related error, eg. if given integration does not exist"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Integrations
+  /api/v3/integrations:
+    get:
+      tags:
+        - Integrations
+      summary: List enabled Integrations
+      description: "With this endpoint you can list the names of all Integrations you have enabled on https://profile.timeular.com/"
+      operationId: listEnabledIntegrations
+      responses:
+        "200":
+          description: List of enabled Integrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnabledIntegrationsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region User
+  /api/v3/me:
+    get:
+      tags:
+        - User
+      summary: Me
+      description: An endpoint for fetching your basic profile information.
+      operationId: me
+      responses:
+        "200":
+          description: Me
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/space:
+    get:
+      tags:
+        - User
+      summary: Spaces with Members
+      description: "Fetches the personal and shared spaces for the current user, with the members and retired members for these spaces.\n\nYou will only get other members and retired members for spaces you are admin of, otherwise you will get the space admins and yourself as a member in the response."
+      operationId: spacesWithMembers
+      responses:
+        "200":
+          description: List Spaces with Members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSpacesWithMembersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region TagsAndMentions
+  /api/v3/mentions:
+    post:
+      tags:
+        - TagsAndMentions
+      summary: Create Mention
+      description: Creates a Mention within the given space and scope (timeular is default).
+      operationId: createMention
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMention"
+      responses:
+        "200":
+          description: Created Mention
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mention"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Space not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v3/mentions/{mentionID}:
+    parameters:
+      - in: path
+        name: mentionID
+        schema:
+          type: integer
+        required: true
+        description: Mention ID
+    patch:
+      tags:
+        - TagsAndMentions
+      summary: Update Mention
+      description: Update Mention
+      operationId: updateMention
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMention"
+      responses:
+        "200":
+          description: Updated Mention
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mention"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - TagsAndMentions
+      summary: Delete Mention
+      description: "Deletes the given mention, returning the list of timeEntries, which were edited by this operation, as well as if the currentTracking was edited by deleting the mention."
+      operationId: deleteMention
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTagOrMentionResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/tags-and-mentions:
+    get:
+      tags:
+        - TagsAndMentions
+      summary: Fetch TagsAndMentions
+      description: "Fetches all Tags and Mentions, including from third party integrations, such as JIRA, Toggl etc."
+      operationId: fetchTagsMentions
+      responses:
+        "200":
+          description: List of Tags and Mentions
+          content:
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/ListTagsMentionsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/tags:
+    post:
+      tags:
+        - TagsAndMentions
+      summary: Create Tag
+      description: Creates a Tag within the given space and scope (timeular is default).
+      operationId: createTag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "200":
+          description: Create Tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Space Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v3/tags/{tagID}:
+    parameters:
+      - in: path
+        name: tagID
+        schema:
+          type: integer
+        required: true
+        description: Tag ID
+    delete:
+      tags:
+        - TagsAndMentions
+      summary: Delete Tag
+      description: "Deletes the given tag, returning the list of timeEntries, which were edited by this operation, as well as if the currentTracking was edited by deleting the tag."
+      operationId: deleteTag
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTagOrMentionResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - TagsAndMentions
+      summary: Update Tag
+      description: Update Tag
+      operationId: updateTag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTag"
+      responses:
+        "200":
+          description: Updated Tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Reports
+  "/api/v3/report/{startDate}/{endDate}":
+    parameters:
+      - in: path
+        name: startDate
+        schema:
+          type: string
+        required: true
+        description: Start Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+      - in: path
+        name: endDate
+        schema:
+          type: string
+        required: true
+        description: End Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+    get:
+      tags:
+        - Reports
+      summary: Generate Report
+      description: "Generates a report which contains all the Time Entries from inside the given time range. If some Time Entry exceeds the report’s time range, only the matching part will be included.\n\n*Warning: For this endpoint you need a pro subscription!*\n\nThere are three optional query parameters:\n\n* activityId (e.g. 1)\n* noteQuery (e.g. \"sometext\")\n* fileType (\"xlsx\" or \"csv\" - defaults to \"csv\")\n\nAnd one mandatory parameter:\n\n* timezone (e.g. Europe/Warsaw)"
+      operationId: generateReport
+      parameters:
+        - in: query
+          name: timezone
+          required: true
+          schema:
+            type: string
+            example: Europe/Warsaw
+        - in: query
+          name: activityid
+          required: false
+          schema:
+            type: number
+            example: 1
+        - in: query
+          name: fileType
+          required: false
+          schema:
+            type: string
+            enum:
+              - xlsx
+              - csv
+      responses:
+        "200":
+          description: Report in CSV or XLSX format
+          content:
+            text/plain:
+              examples:
+                Report in CSV or XLSX format:
+                  value: "\"Version\",\"TimeEntryID\",\"StartDate\",\"StartTime\",\"StartTimeOffset\",\"EndDate\",\"EndTime\",\"EndTimeOffset\",\"Duration\",\"ActivityID\",\"Activity\",\"SpaceId\",\"Space\",\"Username\",\"Note\",\"Mentions\",\"Tags\"\r\n\"4\",\"34714342\",\"2016-02-03\",\"05:00:00\",\"+0100\",\"2016-02-03\",\"06:00:00\",\"+0100\",\"01:00:00\",\"116080\",\"sleeping\",\"1\",\"My Space\",\"my-email@timeular.com\",\"99 sheep\",\"\",\"\"\r\n\"4\",\"34714421\",\"2016-08-05\",\"08:00:00\",\"+0200\",\"2016-08-05\",\"09:00:00\",\"+0200\",\"01:00:00\",\"1217348\",\"sleeping\",\"2\",\"Shared Space\",\"my-email@timeular.com\",\"99 sheep #my new tag4 @Salaidh\",\"@Salaidh\",\"#my new tag4\"\r\n\"4\",\"31623071\",\"2017-02-06\",\"18:25:00\",\"+0100\",\"2017-02-06\",\"19:25:00\",\"+0100\",\"01:00:00\",\"876519\",\"ZEIº-Test\",\"1\",\"My Space\",\"my-email@timeular.com\",\"@ZEIT-13\",\"@ZEIT-13\",\"\"\r\n"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  "/api/v3/report/data/{startDate}/{endDate}":
+    parameters:
+      - in: path
+        name: startDate
+        schema:
+          type: string
+        required: true
+        description: Start Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+      - in: path
+        name: endDate
+        schema:
+          type: string
+        required: true
+        description: End Date in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC
+        example: '2017-12-31T23:59:59.999'
+    get:
+      tags:
+        - Reports
+      summary: All Data as JSON
+      description: "Generates a Report which contains all the Time Entries from inside the given time range as JSON from all personal spaces and shared spaces. If some Time Entry exceeds the report’s time range, only matching part will be included.\n"
+      operationId: allDataAsJson
+      responses:
+        "200":
+          description: All Data as JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllDataAsJsonResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Webhooks
+  /api/v3/webhooks/event:
+    get:
+      tags:
+        - Webhooks
+      summary: List available events
+      description: "Returns a list of events, which can be subscribed to."
+      operationId: listAvailableEvents
+      responses:
+        "200":
+          description: List of Events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAvailableEventsResponse"
+
+  /api/v3/webhooks/subscription:
+    get:
+      tags:
+        - Webhooks
+      summary: List Subscriptions
+      description: Lists all webhook subscriptions for the current user.
+      operationId: listSubscriptions
+      responses:
+        "200":
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSubscriptionsResponse"
+    post:
+      tags:
+        - Webhooks
+      summary: Subscribe
+      description: "Creates a webhook subscription for the given event. That means that if the event happens (e.g. a time entry is created), the given target url will be called with the payload of the event.\n\nThe URL needs to be a valid, publicly reachable, HTTPS URL.\n\nThe webhook has a timeout of 10 seconds, so if it takes longer to call the given URL, it will fail.\n\nIf the given target URL returns a `410 GONE` error, this webhook subscription will automatically be unsubscribed.\n\nSee the Webhooks description for further information about the payloads."
+      operationId: subscribe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeRequest"
+      responses:
+        "200":
+          description: Subscription ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscribeResponse"
+        "400":
+          description: Maximum Number of Subscriptions per Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Webhooks
+      summary: Unsubscribe all for User
+      description: Removes all webhooks subscriptions for the current user.
+      operationId: unsubscribeAllForUser
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v3/webhooks/subscription/{subscriptionID}:
+    parameters:
+      - in: path
+        name: subscriptionID
+        schema:
+          type: integer
+        required: true
+        description: Subscription ID
+    delete:
+      tags:
+        - Webhooks
+      summary: Unsubscribe
+      description: Removes a webhook subscription by id.
+      operationId: unsubscribe
+      responses:
+        "200":
+          description: Unsubscribe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+#endregion
+
+#region Tags
+tags:
+  - name: Authentication
+  - name: Activities
+    description: "Activities are one of the main concepts in Timeular. You can track time on them and synchronize them with third party tools, such as JIRA.\n\nWhen an activity is no longer needed, you can archive it. The data already tracked on it will remain, even if an activity is archived."
+  - name: Devices
+    description: "The device represents your Tracker. At the very beginning Timeular knows nothing about your Devices, but you can activate any Device by providing its Serial number.\n\nOnly one Device can be active at any given moment, to ensure the Timeular client can perform actions in context of same paired Tracker.\n\nMoreover you can name your Devices to distinguish them easily. Devices can be marked as disabled too, which can help you to see which Devices should not handle Side changes (until enabled again)."
+  - name: Tracking
+    description: "A tracking is the representation of what you are doing at any given moment. When finished, a new Time Entry is created based on the tracked time. All timestamps are in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC, eg. '2017-12-31T23:59:59.999'."
+  - name: TimeEntries
+    description: "Time Entries are one of the main concepts in Timeular.\n\nThey represent time spent on activities. A time entry can contain a textual Note, which allows you to add some useful context.\n\nThere can be only one Time Entry in any given time-frame, even if they belong to different activities. All timestamps are in the format 'YYYY-MM-DDTHH:mm:ss.SSS' in UTC, eg. '2017-12-31T23:59:59.999'."
+  - name: Integrations
+    description: "Your Timeular account can be connected with Integrations, eg. JIRA. Check them out on https://profile.timeular.com/#/app/integrations ."
+  - name: User
+  - name: TagsAndMentions
+    description: "Tags and Mentions are a concept for adding contextual information to time entries. You can add #tags and @mentions to a time entry's note."
+  - name: Reports
+  - name: Webhooks
+    description: "Webhooks are a way to enable bi-directional communication via the API.\n\nThe concept is simple - you subscribe to one of our existing events (which can be fetched using the `List available events` endpoint) and provide a target URL.\n\nThis URL needs to be a valid, publicly reachable, HTTPS URL\n\nIf an event of the given type, for example `timeEntryCreated` is triggered, the URL you provided will be called with a `POST` request, containing the event payload as JSON.\n\nExamples for the currently available events and their payloads can be found below.\n\nThis enables you to build systems, which react on changes made in your Timeular data. For example, you could write a tool which turns your light switch on and off if you start, or stop a Tracking. Or you know, something actually useful... ;)\n\nThe possibilities are endless here and this API also finally makes it possible to integrate with tools such as [Zapier](https://zapier.com/)!\n\n## Available Events:\n\n* timeEntryCreated\n* timeEntryUpdated\n* timeEntryDeleted\n* trackingStarted\n* trackingStopped\n* trackingEdited\n* trackingCanceled\n\n## Example Payloads\n\n#### timeEntryCreated\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"timeEntryCreated\",\n    \"data\":\n    {\n       \"createdTimeEntry\":\n       {\n           \"activity\":\n           {\n               \"id\": \"1\",\n               \"name\": \"some activity\",\n               \"color\": \"#ffffff\",\n               \"integration\": \"zei\",\n               \"spaceId\": \"2\"\n\n           },\n           \"duration\":\n           {\n               \"startedAt\": \"2016-02-03T04:00:00.000\",\n               \"stoppedAt\": \"2016-02-03T05:00:00.000\"\n           },\n           \"id\": \"1\",\n           \"note\":\n           {\n              \"mentions\":\n              [\n                  {\n                      \"id\": 1,\n                      \"key\": \"TheSheep\",\n                      \"label\": \"TheSheep\",\n                      \"scope\": \"timeular\",\n                      \"spaceId\": \"2\"\n                  }\n              ],\n              \"tags\":\n              [\n                  {\n                      \"id\": 1,\n                      \"key\": \"boring\",\n                      \"label\": \"boring\",\n                      \"scope\": \"timeular\",\n                      \"spaceId\": \"2\"\n                  }\n              ],\n              \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n          }\n       }\n    }\n}\n```\n\n#### timeEntryUpdated\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"timeEntryUpdated\",\n    \"data\":\n    {\n       \"updatedTimeEntry\":\n       {\n           \"activity\":\n           {\n               \"id\": \"1\",\n               \"name\": \"some activity\",\n               \"color\": \"#ffffff\",\n               \"integration\": \"zei\",\n               \"spaceId\": \"2\"\n           },\n           \"duration\":\n           {\n               \"startedAt\": \"2016-02-03T04:00:00.000\",\n               \"stoppedAt\": \"2016-02-03T05:00:00.000\"\n           },\n           \"id\": \"1\",\n           \"note\":\n           {\n              \"mentions\":\n              [\n                  {\n                      \"id\": 1,\n                      \"key\": \"TheSheep\",\n                      \"label\": \"TheSheep\",\n                      \"scope\": \"timeular\",\n                      \"spaceId\": \"2\"\n                  }\n              ],\n              \"tags\":\n              [\n                  {\n                      \"id\": 1,\n                      \"key\": \"boring\",\n                      \"label\": \"boring\",\n                      \"scope\": \"timeular\",\n                      \"spaceId\": \"2\"\n                  }\n              ],\n              \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n          }\n       }\n    }\n}\n```\n\n#### timeEntryDeleted\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"timeEntryDeleted\",\n    \"data\":\n    {\n        \"deletedTimeEntry\": \n        {\n          \"id\": \"1\"\n        }\n    }\n}\n```\n\n#### trackingStarted\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"trackingStarted\",\n    \"data\":\n    {\n        \"currentTracking\":\n        {\n            \"id\": 1,\n            \"activity\":\n            {\n                \"id\": \"1\",\n                \"name\": \"some activity\",\n                \"color\": \"#ffffff\",\n                \"integration\": \"zei\",\n                \"spaceId\": \"2\"\n            },\n            \"note\":\n            {\n                \"mentions\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"TheSheep\",\n                        \"label\": \"TheSheep\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"tags\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"boring\",\n                        \"label\": \"boring\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n            },\n            \"startedAt\": \"2016-02-03T04:00:00.000\"\n        }\n    }\n}\n```\n\n#### trackingStopped\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"trackingStopped\",\n    \"data\": \n    {\n        \"createdTimeEntries\": [], // time entries which were created\n        \"deletedTimeEntries\": [], // ids of deleted timeentries\n        \"editedTimeEntries\": [], // time entries which were edited\n        \"newTimeEntry\":\n        {\n            \"activity\":\n            {\n                \"id\": \"1\",\n                \"name\": \"some activity\",\n                \"color\": \"#ffffff\",\n                \"integration\": \"zei\",\n                \"spaceId\": \"2\"\n            },\n            \"duration\":\n            {\n                \"startedAt\": \"2016-02-03T04:00:00.000\",\n                \"stoppedAt\": \"2016-02-03T05:00:00.000\"\n            },\n            \"id\": \"1\",\n            \"note\":\n            {\n                \"mentions\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"TheSheep\",\n                        \"label\": \"TheSheep\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"tags\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"boring\",\n                        \"label\": \"boring\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n            }\n        }\n    }\n}\n```\n\n#### trackingEdited\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"trackingEdited\",\n    \"data\":\n    {\n        \"currentTracking\":\n        {\n            \"id\": 1,\n            \"activity\":\n            {\n                \"id\": \"1\",\n                \"name\": \"some activity\",\n                \"color\": \"#ffffff\",\n                \"integration\": \"zei\",\n                \"spaceId\": \"2\"\n            },\n            \"note\":\n            {\n                \"mentions\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"TheSheep\",\n                        \"label\": \"TheSheep\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"tags\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"boring\",\n                        \"label\": \"boring\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n            },\n            \"startedAt\": \"2016-02-03T04:00:00.000\"\n        }\n    }\n}\n```\n\n#### trackingCanceled\n\n```json\n{\n    \"userId\": \"123\",\n    \"eventType\": \"trackingCanceled\",\n    \"data\":\n    {\n        \"currentTracking\":\n        {\n            \"id\": 1,\n            \"activity\":\n            {\n                \"id\": \"1\",\n                \"name\": \"some activity\",\n                \"color\": \"#ffffff\",\n                \"integration\": \"zei\",\n                \"spaceId\": \"2\"\n            },\n            \"note\":\n            {\n                \"mentions\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"TheSheep\",\n                        \"label\": \"TheSheep\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"tags\":\n                [\n                    {\n                        \"id\": 1,\n                        \"key\": \"boring\",\n                        \"label\": \"boring\",\n                        \"scope\": \"timeular\",\n                        \"spaceId\": \"2\"\n                    }\n                ],\n                \"text\": \"99 sheep <{{|t|1|}}> <{{|m|1|}}>\"\n            },\n            \"startedAt\": \"2016-02-03T04:00:00.000\"\n        }\n    }\n}\n```\n"
+#endregion
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+#region ErrorResponse
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Explanation of what has happened
+#endregion
+
+#region Authentication
+    SignInRequest:
+      type: object
+      required:
+        - apiKey
+        - apiSecret
+      properties:
+        apiKey:
+          type: string
+        apiSecret:
+          type: string
+    SignInResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: 1234abcdEFGH
+
+    FetchAPIKeyResponse:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          example: ABCDefgh1234=
+
+    GenerateNewAPIKeyResponse:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          example: ABCDefgh1234=
+        apiSecret:
+          type: string
+          example: EFGHijkl5678=
+#endregion
+
+#region Activities
+    CreateActivity:
+      type: object
+      required:
+        - color
+        - name
+        - spaceId
+      properties:
+        color:
+          type: string
+          example: "#000000"
+        integration:
+          type: string
+          example: zei
+        name:
+          type: string
+          example: def
+        spaceId:
+          type: string
+          example: "2"
+
+    EditActivity:
+      type: object
+      properties:
+        color:
+          type: string
+          example: "#000000"
+        name:
+          type: string
+          example: def
+
+    BaseActivity:
+      type: object
+      properties:
+        color:
+          type: string
+          example: "#000000"
+        id:
+          type: string
+          example: "2"
+        integration:
+          type: string
+          example: zei
+        name:
+          type: string
+          example: def
+        spaceId:
+          type: string
+          example: "2"
+
+    ActiveActivity:
+      allOf:
+        - $ref: "#/components/schemas/BaseActivity"
+        - type: object
+          properties:
+            deviceSide:
+              nullable: true
+              example: ~
+
+    ListActivitiesResponse:
+      type: object
+      properties:
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActiveActivity"
+        archivedActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/BaseActivity"
+        inactiveActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/BaseActivity"
+#endregion
+
+#region Devices
+    EditDeviceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Doge
+
+    Device:
+      type: object
+      properties:
+        active:
+          type: boolean
+          example: true
+        disabled:
+          type: boolean
+          example: false
+        name:
+          type: string
+          example: Personal Tracker
+        serial:
+          type: string
+          example: "123"
+
+    ListDevicesResponse:
+      type: object
+      properties:
+        devices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Device"
+#endregion
+
+#region Common
+    Tag:
+      type: object
+      properties:
+        id:
+          type: number
+          example: 1
+        key:
+          type: string
+          example: 3b381b24-c690-4000-9079-7355579162fb
+        label:
+          type: string
+          example: some tag
+        scope:
+          type: string
+          example: timeular
+        spaceId:
+          type: string
+          example: "1"
+
+    Mention:
+      type: object
+      properties:
+        id:
+          type: number
+          example: 2
+        key:
+          type: string
+          example: 2b381b24-c690-4000-9079-7355579162fb
+        label:
+          type: string
+          example: some-mention
+        scope:
+          type: string
+          example: timeular
+        spaceId:
+          type: string
+          example: "1"
+
+    Note:
+      type: object
+      properties:
+        mentions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mention"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        text:
+          type: string
+          example: "99 sheep <{{|t|1|}}> <{{|m|2|}}>"
+
+    Duration:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          example: "2020-02-03T04:00:00.000"
+        stoppedAt:
+          type: string
+          example: "2020-08-03T05:00:00.000"
+#endregion
+
+#region Tracking
+    Tracking:
+      type: object
+      properties:
+        activityId:
+          type: string
+          example: "1217348"
+        id:
+          type: number
+          example: 1
+        note:
+          $ref: "#/components/schemas/Note"
+        startedAt:
+          type: string
+          example: "2020-08-03T04:00:00.000"
+
+    CurrentTrackingResponse:
+      type: object
+      properties:
+        currentTracking:
+          $ref: "#/components/schemas/Tracking"
+
+    StopTrackingResponse:
+      type: object
+      properties:
+        stoppedAt:
+          type: string
+          example: "2016-02-03T05:00:00.000"
+
+    EditTrackingRequest:
+      type: object
+      properties:
+        activityId:
+          type: string
+          example: "1"
+        note:
+          type: object
+          properties:
+            text:
+              type: string
+              example: "99 sheep <{{|t|1|}}> <{{|m|1|}}>"
+        startedAt:
+          type: string
+          example: "2016-02-03T04:00:00.000"
+
+    StartTrackingRequest:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          example: "2016-02-03T04:00:00.000"
+#endregion
+
+#region TimeEntry
+    TimeEntry:
+      type: object
+      properties:
+        activityId:
+          type: string
+          example: "1217348"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        id:
+          type: string
+          example: "34714420"
+        note:
+          $ref: "#/components/schemas/Note"
+
+    CreateNote:
+      type: object
+      nullable: true
+      properties:
+        text:
+          type: string
+          example: "99 sheep <{{|t|1|}}> <{{|m|1|}}>"
+
+    CreateOrEditTimeEntryRequest:
+      type: object
+      properties:
+        activityId:
+          type: string
+          example: "1"
+        note:
+          $ref: "#/components/schemas/CreateNote"
+        startedAt:
+          type: string
+          example: "2016-08-05T06:00:00.000"
+        stoppedAt:
+          type: string
+          example: "2016-08-05T07:00:00.000"
+
+    CreateTimeEntryResponse:
+      type: object
+      properties:
+        createdTimeEntry:
+          $ref: "#/components/schemas/TimeEntry"
+        errors:
+          type: array
+          items:
+            type: string
+            example: "Third Party Service error: status code = 400, message = 'no integration found for 111525 and integrationType toggl'"
+
+    FindTimeEntriesResponse:
+      type: object
+      properties:
+        timeEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeEntry"
+
+    DeleteTimeEntryResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+            example: Any error which can be ignored and did not prevented action to be performed successfully.
+#endregion
+
+#region Integration
+    ListEnabledIntegrationsResponse:
+      type: object
+      properties:
+        integrations:
+          type: array
+          items:
+            type: string
+            example: jira
+          example:
+            - jira
+            - toggl
+            - trello
+#endregion
+
+#region User
+    Me:
+      type: object
+      properties:
+        defaultSpaceId:
+          type: string
+          example: "1"
+        email:
+          type: string
+          example: my-name@example.com
+        name:
+          type: string
+          example: my name
+        userId:
+          type: string
+          example: "1"
+
+    MeResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Me"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "my name"
+        email:
+          type: string
+          example: "me-email@example.com"
+        role:
+          type: string
+          example: "Admin"
+
+    Space:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "my personal space"
+        default:
+          type: boolean
+          example: true
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        retiredMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+
+    GetSpacesWithMembersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Space"
+#endregion
+
+#region TagsAndMentions
+    CreateMention:
+      type: object
+      properties:
+        key:
+          type: string
+          example: 2b381b24-c690-4000-9079-7355579162fb
+        label:
+          type: string
+          example: some-mention
+        scope:
+          type: string
+          example: timeular
+        spaceId:
+          type: string
+          example: "1"
+
+    UpdateMention:
+      type: object
+      properties:
+        label:
+          type: string
+          example: some-mention
+
+    DeleteTagOrMentionResponse:
+      type: object
+      properties:
+        timeEntryIds:
+          type: array
+          items:
+            type: number
+            example: 1234
+        trackingEdited:
+          nullable: true
+
+    ListTagsMentionsResponse:
+      type: object
+      properties: 
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        mentions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mention"
+
+    CreateTagRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          example: 3b381b24-c690-4000-9079-7355579162fb
+        label:
+          type: string
+          example: some tag
+        scope:
+          type: string
+          example: timeular
+        spaceId:
+          type: string
+          example: "1"
+
+    UpdateTag:
+      type: object
+      properties:
+        label:
+          type: string
+          example: some-tag
+#endregion
+
+#region Reports
+    ReportActivity:
+      type: object
+      properties:
+        activity:
+          $ref: "#/components/schemas/BaseActivity"
+        creator:
+          type: string
+          example: "1"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        id:
+          type: string
+          example: "1"
+        note:
+          $ref: "#/components/schemas/Note"
+
+    AllDataAsJsonResponse:
+      type: object
+      properties:
+        timeEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportActivity"
+#endregion
+
+#region Webhooks
+    ListAvailableEventsResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            type: string
+            example: timeEntryCreated
+          example:
+            - timeEntryCreated
+            - timeEntryUpdated
+            - timeEntryDeleted
+            - trackingStarted
+            - trackingStopped
+            - trackingEdited
+            - trackingCanceled
+
+    Subscription:
+      type: object
+      properties:
+        event:
+          type: string
+          example: trackingStarted
+        id:
+          type: string
+          example: "123456"
+        target_url:
+          type: string
+          example: "https://example.org/some-endpoint"
+
+    ListSubscriptionsResponse:
+      type: object
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+
+    SubscribeRequest:
+      type: object
+      properties:
+        event:
+          type: string
+          example: trackingStarted
+        target_url:
+          type: string
+          example: "https://example.org/some-endpoint"
+
+    SubscribeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123456"
+
+#endregion

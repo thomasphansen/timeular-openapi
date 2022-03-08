@@ -1,0 +1,10 @@
+{
+	"invokerPackage": "ThomasHansen\\Package\\Timeular",
+	"modelPackage": "Model",
+	"apiPackage": "Api",
+	"packagePath": "",
+	"gitUserId": "thomasphansen",
+	"gitRepoId": "timeular-openapi",
+	"composerVendorName": "thomasphansen",
+	"composerProjectName": "timeular-openapi"
+}
